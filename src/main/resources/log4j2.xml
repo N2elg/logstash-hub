@@ -1,24 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %c{1} - %msg%n</Property>
+        <Property name="DEFAULT_LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36}
+            -%msg%n</Property>
         <Property name="APP_LOG_LEVEL">INFO</Property>
-        <Property name="SERVICE_LOG_NAME">WARN</Property>
+        <Property name="SERVICE_LOG_PATTERN">%X{TS} %X{LL} %X{h:%X{HN}} [s:%X{SN}] [pid:%X{PID}] </Property>
+        <Property name="SERVICE_LOG_NAME">Hub</Property>
     </Properties>
 
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="${LOG_PATTERN}" />
+            <PatternLayout pattern="${DEFAULT_LOG_PATTERN}" />
         </Console>
+        <RollingRandomAccessFile name="LogstashHubFileAppender"
+            fileName="${env:LOG_FOLDER:-logs}/${env:LOG_NAME:-logstash-hub}.log"
+            filePattern="${env:LOG_FOLDER:-logs}/${env:LOG_NAME:-logstash-hub}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${DEFAULT_LOG_PATTERN}" />
+            <Policies>
+                <OnStartupTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="100 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="20">
+                <Delete basePath="${env:LOG_FOLDER:-logs}" maxDepth="2">
+                    <IfAccumulatedFileCount exceeds="1 GB" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+
+        <RollingRandomAccessFile name="ServicesLogAppender"
+            fileName="${sys:logPath}/${sys:serviceName}.log"
+            filePattern="${sys:logPath}/${sys:serviceName}-%d{yyyy-MM-dd-HH-mm-ss}-%i.log.gz">
+            <PatternLayout pattern="${DEFAULT_LOG_PATTERN}" />
+            <Policies>
+                <SizeBasedTriggeringPolicy size="${sys:maxSingleLogSize}" />
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="${sys:maxCountOfCompressedPerHour}" />
+        </RollingRandomAccessFile>
+
     </Appenders>
 
     <Loggers>
-        <Logger name="org.n2elg.log" level="${APP_LOG_LEVEL}" additivity="false">
-            <AppenderRef ref="Console" />
-        </Logger>
-
-        <Root level="${SERVICE_LOG_NAME}">
-            <AppenderRef ref="Console" />
-        </Root>
     </Loggers>
 </Configuration>
