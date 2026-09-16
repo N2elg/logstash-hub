@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <Property name="DEFAULT_LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36}
-            -%msg%n</Property>
+        <Property name="DEFAULT_LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} -%msg%n</Property>
         <Property name="APP_LOG_LEVEL">INFO</Property>
-        <Property name="SERVICE_LOG_PATTERN">%X{TS} %X{LL} %X{h:%X{HN}} [s:%X{SN}] [pid:%X{PID}] </Property>
+        <Property name="SERVICE_LOG_PATTERN">%X{TS} %X{LL} [h:%X{HN}] [s:%X{SN}] [pid:%X{PID}] [txId:%X{TX_ID}] [u:%X{UN}] %msg%n</Property>
         <Property name="SERVICE_LOG_NAME">Hub</Property>
     </Properties>
 
@@ -27,19 +26,32 @@
             </DefaultRolloverStrategy>
         </RollingRandomAccessFile>
 
-        <RollingRandomAccessFile name="ServicesLogAppender"
-            fileName="${sys:logPath}/${sys:serviceName}.log"
-            filePattern="${sys:logPath}/${sys:serviceName}-%d{yyyy-MM-dd-HH-mm-ss}-%i.log.gz">
-            <PatternLayout pattern="${DEFAULT_LOG_PATTERN}" />
+        <RollingRandomAccessFile bufferSize="4194304" name="ServicesLogAppender" filePermissions="rwxr-xr-x"
+            fileName="${sys:CON_LOG_PATH:-xds_logs}/${SERVICE_LOG_NAME}.log"
+            filePattern="${sys:CON_LOG_PATH:-xds_logs}/${SERVICE_LOG_NAME}_%d{yyyy_MM_dd_HHmmss}.log.gz">
+            <PatternLayout pattern="${APP_LOG_LEVEL}" />
             <Policies>
-                <SizeBasedTriggeringPolicy size="${sys:maxSingleLogSize}" />
-                <TimeBasedTriggeringPolicy />
+                <OnStartupTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="${sys:SRV_LOG_SIZE:-1 GB}" />
             </Policies>
-            <DefaultRolloverStrategy max="${sys:maxCountOfCompressedPerHour}" />
+            <DefaultRolloverStrategy max="${sys:COM_COUNT_PER_H:-7}">
+                <Delete basePath="${sys:CON_LOG_PATH:-xds_logs}" maxDepth="3">
+                    <IfAny>
+                        <IfLastModified age="${sys:LAST_MODIFY:-P30D}" />
+                        <IfAccumulatedFileSize exceeds="${sys:ACC_FILE_SIZE:-10 GB}" />
+                    </IfAny>
+                </Delete>
+            </DefaultRolloverStrategy>
         </RollingRandomAccessFile>
-
     </Appenders>
 
     <Loggers>
+        <asyncRoot level="${APP_LOG_LEVEL}">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="LogstashHubFileAppender" />
+        </asyncRoot>
+        <asyncRoot name="org.n2elg.logstash.writer" level="${APP_LOG_LEVEL}" additivity="false">
+            <AppenderRef ref="ServicesLogAppender" />
+        </asyncRoot>
     </Loggers>
 </Configuration>
