@@ -20,10 +20,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.project.singleInstanceOnly>Y</maven.project.singleInstanceOnly>
-        <netty.version>4.2.15.Final</netty.version>
+        <netty.version>4.2.18.Final</netty.version>
         <disruptor.version>4.0.0</disruptor.version>
         <log4j2.version>2.25.4</log4j2.version>
-        <jackson-module.version>3.1.1</jackson-module.version>
+        <jackson-module.version>3.2.2</jackson-module.version>
         <jasypy.version>1.9.3</jasypy.version>
         <ok.http3.version>4.12.0</ok.http3.version>
         <junit.version>5.14.3</junit.version>
