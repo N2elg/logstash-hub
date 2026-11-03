@@ -2,6 +2,10 @@
 
 Lightweight log receiver and SSE streaming hub.
 
+## Requirements
+
+Java 25 or later is required to build and run the application.
+
 ## Build
 
 ```bash
