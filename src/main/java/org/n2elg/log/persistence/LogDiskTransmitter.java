@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.ThreadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +97,24 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
         });
     }
 
+    @SuppressWarnings("java:S2629")
     private void persistToDisk(String json, String lineSeparator) {
+        LogstashLogEvent event = this.jsonReader.readValue(json);
+        ThreadContext.put("TS", event.getTimestamp());
+        ThreadContext.put("LL", event.getLevel());
+        ThreadContext.put("HN", event.getSourceHost());
+        ThreadContext.put("SN", event.getServiceName());
+        ThreadContext.put("TX_ID", event.getTransactionId());
+        ThreadContext.put("PID", event.getPID());
+
+        /*
+         * String.formart or String.join String.concat in some way is super slower than
+         * StringBuilder
+         * Output LOG_PATTERN = "[] [] %s  :%s"
+         * Although there are many articles introduce that there is no difference wi
+         * using operator I
+         * 
+         */
 
     }
 }
