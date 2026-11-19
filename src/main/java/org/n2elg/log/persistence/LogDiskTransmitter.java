@@ -46,8 +46,28 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
 
     @Override
     public void run() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'run'");
+        String lineSeparator = null;
+        while (!this.consumer.isInterrupted()) {
+            String batchJson = logStreamQueue.poll();
+            try {
+                if (batchJson == null) {
+                    LOGGER.debug("There is no log event in queue");
+                    TimeUnit.MILLISECONDS.sleep(INNER_THREAD_SLEEP_MILLIS);
+                } else {
+                    lineSeparator = getLineSeparator(batchJson);
+                    splitAndWriteLogs(batchJson, lineSeparator);
+                }
+            } catch (InterruptedException e) {
+                LOGGER.debug("Thread {} will quit because of {}", Thread.currentThread().getName(), e.getMessage());
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                LOGGER.warn("Unexpected error happens, skip this log event", e);
+            }
+        }
+        LOGGER.debug("Before quit this dispatcher, clean up spoooled logs in {}", this.writerName);
+        String copySeparator = lineSeparator == null ? System.lineSeparator() : lineSeparator;
+        logStreamQueue.drain(e -> splitAndWriteLogs(e, copySeparator));
+        LOGGER.info("Spooled logs have been written to files, thread quits");
     }
 
     @Override
@@ -100,21 +120,56 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
     @SuppressWarnings("java:S2629")
     private void persistToDisk(String json, String lineSeparator) {
         LogstashLogEvent event = this.jsonReader.readValue(json);
+        // Timestamp
         ThreadContext.put("TS", event.getTimestamp());
+        // Log Level
         ThreadContext.put("LL", event.getLevel());
+        // Host Name
         ThreadContext.put("HN", event.getSourceHost());
+        // Service Name
         ThreadContext.put("SN", event.getServiceName());
+        // Transaction ID
         ThreadContext.put("TX_ID", event.getTransactionId());
         ThreadContext.put("PID", event.getPID());
-
         /*
          * String.formart or String.join String.concat in some way is super slower than
-         * StringBuilder
+         * StringBuilder. Although there are many articles introduce that there is no
+         * difference with using operator "+" or StringBuilder (JVM will optimize it).
+         * To 100% ensure there is no performanace degradation, I still choose
+         * StringBuilder.
          * Output LOG_PATTERN = "[] [] %s  :%s"
-         * Although there are many articles introduce that there is no difference wi
-         * using operator I
-         * 
          */
+        StringBuilder sb = new StringBuilder(4096);
+        sb.append("[t:").append(event.getThreadName()).append("][m:");
+        sb.append(event.getCallerMethodName());
+        sb.append("] ").append(event.getLoggerName()).append("  :  ");
+        sb.append(event.getMessage());
+        if (event.getStackTrace() == null || event.getStackTrace().isEmpty()) {
+            sb.append(SYSTEM_LINE_SEPARATOR);
+            if (SYSTEM_LINE_SEPARATOR.equals(lineSeparator)) {
+                sb.append(event.getStackTrace());
+            } else {
+                sb.append(event.getStackTrace().replace(lineSeparator, SYSTEM_LINE_SEPARATOR));
+            }
+        }
+        logWriter.info(sb.toString());
+        ThreadContext.clearMap();
+    }
 
+    /**
+     * Windows/Linux/MacOS line separator
+     */
+    protected String getLineSeparator(String message) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i < 4; i++) {
+            char c = message.charAt(message.length() - 1);
+            if (c == JSON_END_FLAG) {
+                break;
+            } else {
+                sb.insert(0, c);
+            }
+        }
+        String result = sb.toString();
+        return result.isEmpty() ? System.lineSeparator() : result;
     }
 }

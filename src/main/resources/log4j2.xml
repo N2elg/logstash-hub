@@ -50,7 +50,7 @@
             <AppenderRef ref="Console" />
             <AppenderRef ref="LogstashHubFileAppender" />
         </asyncRoot>
-        <asyncRoot name="org.n2elg.logstash.writer" level="${APP_LOG_LEVEL}" additivity="false">
+        <asyncRoot name="org.n2elg.log.logstash.writer" level="${APP_LOG_LEVEL}" additivity="false">
             <AppenderRef ref="ServicesLogAppender" />
         </asyncRoot>
     </Loggers>
