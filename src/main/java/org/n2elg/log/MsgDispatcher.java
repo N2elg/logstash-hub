@@ -1,4 +1,4 @@
-package org.n2elg.log.persistence;
+package org.n2elg.log;
 
 import io.netty.channel.ChannelId;
 

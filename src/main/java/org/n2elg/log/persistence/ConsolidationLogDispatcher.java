@@ -3,6 +3,7 @@ package org.n2elg.log.persistence;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.n2elg.log.MsgDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

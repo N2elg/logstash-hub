@@ -12,6 +12,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.n2elg.log.MsgDispatcher;
 
 import io.netty.channel.ChannelId;
 
