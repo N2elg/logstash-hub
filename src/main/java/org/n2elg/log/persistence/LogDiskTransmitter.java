@@ -22,7 +22,6 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogDiskTransmitter.class);
     private static final String SYSTEM_LINE_SEPARATOR = System.lineSeparator();
     private static final long INNER_THREAD_SLEEP_MILLIS = 20L;
-    private static final char JSON_END_FLAG = '}';
     private static final int MAX_RETRY_TIME = 20;
     private final ObjectReader jsonReader;
     private final Logger logWriter;
@@ -46,7 +45,6 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
 
     @Override
     public void run() {
-        String lineSeparator = null;
         while (!this.consumer.isInterrupted()) {
             String batchJson = logStreamQueue.poll();
             try {
@@ -54,8 +52,7 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
                     LOGGER.debug("There is no log event in queue");
                     TimeUnit.MILLISECONDS.sleep(INNER_THREAD_SLEEP_MILLIS);
                 } else {
-                    lineSeparator = getLineSeparator(batchJson);
-                    splitAndWriteLogs(batchJson, lineSeparator);
+                    splitAndWriteLogs(batchJson);
                 }
             } catch (InterruptedException e) {
                 LOGGER.debug("Thread {} will quit because of {}", Thread.currentThread().getName(), e.getMessage());
@@ -65,8 +62,7 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
             }
         }
         LOGGER.debug("Before quit this dispatcher, clean up spoooled logs in {}", this.writerName);
-        String copySeparator = lineSeparator == null ? System.lineSeparator() : lineSeparator;
-        logStreamQueue.drain(e -> splitAndWriteLogs(e, copySeparator));
+        logStreamQueue.drain(this::splitAndWriteLogs);
         LOGGER.info("Spooled logs have been written to files, thread quits");
     }
 
@@ -102,7 +98,8 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
         }
     }
 
-    private void splitAndWriteLogs(String batchString, String lineSeparator) {
+    private void splitAndWriteLogs(String batchString) {
+        String lineSeparator = getLineSeparator(batchString);
         String[] jsonStrings = batchString.split(lineSeparator);
         LOGGER.debug("{} logs are received", jsonStrings.length);
         Arrays.stream(jsonStrings).forEach(jsonString -> {
@@ -144,7 +141,7 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
         sb.append(event.getCallerMethodName());
         sb.append("] ").append(event.getLoggerName()).append("  :  ");
         sb.append(event.getMessage());
-        if (event.getStackTrace() == null || event.getStackTrace().isEmpty()) {
+        if (event.getStackTrace() != null && !event.getStackTrace().isEmpty()) {
             sb.append(SYSTEM_LINE_SEPARATOR);
             if (SYSTEM_LINE_SEPARATOR.equals(lineSeparator)) {
                 sb.append(event.getStackTrace());
@@ -160,16 +157,15 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
      * Windows/Linux/MacOS line separator
      */
     protected String getLineSeparator(String message) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i < 4; i++) {
-            char c = message.charAt(message.length() - 1);
-            if (c == JSON_END_FLAG) {
-                break;
-            } else {
-                sb.insert(0, c);
+        for (int i = 0; i < message.length(); i++) {
+            char c = message.charAt(i);
+            if (c == '\r') {
+                return message.startsWith("\n", i + 1) ? "\r\n" : "\r";
+            }
+            if (c == '\n') {
+                return "\n";
             }
         }
-        String result = sb.toString();
-        return result.isEmpty() ? System.lineSeparator() : result;
+        return SYSTEM_LINE_SEPARATOR;
     }
 }

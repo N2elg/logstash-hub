@@ -35,7 +35,7 @@ public class ConsolidationLogDispatcher implements MsgDispatcher {
         switch (strategy) {
             case HASH:
                 // Avoid negative integer
-                writerIndex = channelId.hashCode() & Integer.MAX_VALUE % transmitters.length;
+                writerIndex = (channelId.hashCode() & Integer.MAX_VALUE) % transmitters.length;
                 break;
             case RANDOM:
                 writerIndex = r.nextInt(transmitters.length);
@@ -43,7 +43,7 @@ public class ConsolidationLogDispatcher implements MsgDispatcher {
             case ROUND_ROBIN:
                 // AtomicInteger has poor performance in multi-threads scenario
                 this.counter++;
-                writerIndex = this.counter & Integer.MAX_VALUE % transmitters.length;
+                writerIndex = (this.counter & Integer.MAX_VALUE) % transmitters.length;
                 break;
             default:
                 break;
