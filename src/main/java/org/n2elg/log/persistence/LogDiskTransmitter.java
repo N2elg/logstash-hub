@@ -6,9 +6,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueue;
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationFeature;
@@ -17,9 +17,8 @@ import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.module.blackbird.BlackbirdModule;
 
+@Slf4j
 public class LogDiskTransmitter implements LogTransmitter, Runnable {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LogDiskTransmitter.class);
     private static final String SYSTEM_LINE_SEPARATOR = System.lineSeparator();
     private static final long INNER_THREAD_SLEEP_MILLIS = 20L;
     private static final int MAX_RETRY_TIME = 20;
@@ -49,35 +48,35 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
             String batchJson = logStreamQueue.poll();
             try {
                 if (batchJson == null) {
-                    LOGGER.debug("There is no log event in queue");
+                    log.debug("There is no log event in queue");
                     TimeUnit.MILLISECONDS.sleep(INNER_THREAD_SLEEP_MILLIS);
                 } else {
                     splitAndWriteLogs(batchJson);
                 }
             } catch (InterruptedException e) {
-                LOGGER.debug("Thread {} will quit because of {}", Thread.currentThread().getName(), e.getMessage());
+                log.debug("Thread {} will quit because of {}", Thread.currentThread().getName(), e.getMessage());
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                LOGGER.warn("Unexpected error happens, skip this log event", e);
+                log.warn("Unexpected error happens, skip this log event", e);
             }
         }
-        LOGGER.debug("Before quit this dispatcher, clean up spoooled logs in {}", this.writerName);
+        log.debug("Before quit this dispatcher, clean up spoooled logs in {}", this.writerName);
         logStreamQueue.drain(this::splitAndWriteLogs);
-        LOGGER.info("Spooled logs have been written to files, thread quits");
+        log.info("Spooled logs have been written to files, thread quits");
     }
 
     @Override
-    public void transmit(String log) {
-        boolean result = logStreamQueue.offer(log);
+    public void transmit(String logContent) {
+        boolean result = logStreamQueue.offer(logContent);
         if (!result) {
-            LOGGER.warn("{}'s queue is full, skip this log event", this.writerName);
+            log.warn("{}'s queue is full, skip this log event", this.writerName);
         }
     }
 
     @Override
     public void start() {
         this.consumer.start();
-        LOGGER.info("{} has been created and started up", this.writerName);
+        log.info("{} has been created and started up", this.writerName);
     }
 
     @Override
@@ -90,7 +89,7 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
                 try {
                     TimeUnit.MILLISECONDS.sleep(INNER_THREAD_SLEEP_MILLIS);
                 } catch (InterruptedException e) {
-                    LOGGER.warn("Sleeping in interrupted when waiting for close writer {}", this.writerName);
+                    log.warn("Sleeping in interrupted when waiting for close writer {}", this.writerName);
                 }
             } else {
                 break;
@@ -101,13 +100,13 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
     private void splitAndWriteLogs(String batchString) {
         String lineSeparator = getLineSeparator(batchString);
         String[] jsonStrings = batchString.split(lineSeparator);
-        LOGGER.debug("{} logs are received", jsonStrings.length);
+        log.debug("{} logs are received", jsonStrings.length);
         Arrays.stream(jsonStrings).forEach(jsonString -> {
             if (!jsonString.isEmpty()) {
                 try {
                     persistToDisk(jsonString, lineSeparator);
                 } catch (JacksonException e) {
-                    LOGGER.warn("Fail to deserialize this log event {} with line separator 0x{}", jsonString,
+                    log.warn("Fail to deserialize this log event {} with line separator 0x{}", jsonString,
                             HexFormat.of().formatHex(lineSeparator.getBytes()), e);
                 }
             }

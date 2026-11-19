@@ -14,6 +14,9 @@ Java 25 or later is required to build and run the application.
 ./mvnw clean package
 ```
 
+Run `./mvnw clean verify` to run the unit tests and enforce the same coverage check as CI.
+Project-wide line coverage must exceed 60%. Open `target/site/jacoco/index.html` for the coverage breakdown.
+
 ## Run
 
 ```bash

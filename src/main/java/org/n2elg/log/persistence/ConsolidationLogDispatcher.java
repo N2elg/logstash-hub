@@ -7,10 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.netty.channel.ChannelId;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ConsolidationLogDispatcher implements MsgDispatcher {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConsolidationLogDispatcher.class);
     private final LogTransmitter[] transmitters;
     private final DispatcherStrategy strategy;
     private final Random r;
@@ -49,7 +50,7 @@ public class ConsolidationLogDispatcher implements MsgDispatcher {
                 break;
         }
         LogTransmitter transmitter = this.transmitters[writerIndex];
-        LOGGER.debug("Json list {} is sent to thread {}", message, writerIndex);
+        log.debug("Json list {} is sent to thread {}", message, writerIndex);
         transmitter.transmit(message);
     }
 
