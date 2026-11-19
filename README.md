@@ -1,5 +1,7 @@
 # logstash-hub
 
+[![Java CI status on main](https://github.com/N2elg/logstash-hub/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/N2elg/logstash-hub/actions/workflows/ci.yml)
+
 Lightweight log receiver and SSE streaming hub.
 
 ## Requirements
