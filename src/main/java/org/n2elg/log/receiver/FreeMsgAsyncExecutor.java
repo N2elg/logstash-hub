@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCountUtil;
-import io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueue;
+import org.jctools.queues.MpscArrayQueue;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

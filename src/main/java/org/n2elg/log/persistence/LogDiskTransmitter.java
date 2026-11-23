@@ -1,13 +1,15 @@
 package org.n2elg.log.persistence;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.ThreadContext;
+import org.jctools.queues.MpscArrayQueue;
 import org.slf4j.Logger;
 
-import io.netty.util.internal.shaded.org.jctools.queues.MpscArrayQueue;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -31,7 +33,13 @@ public class LogDiskTransmitter implements LogTransmitter, Runnable {
     public LogDiskTransmitter(Logger logWriter, int maxConcurrentLog, int index) {
         ObjectMapper mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .addModule(new BlackbirdModule())
+                .addModule(new BlackbirdModule() {
+                    @Override
+                    protected Function<Class<?>, MethodHandles.Lookup> findLookup() {
+                        var lookup = MethodHandles.lookup();
+                        return type -> type == LogstashLogEvent.class ? lookup : null;
+                    }
+                })
                 .build();
         this.jsonReader = mapper.readerFor(new TypeReference<LogstashLogEvent>() {
         });
