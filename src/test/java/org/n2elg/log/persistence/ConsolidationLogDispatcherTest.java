@@ -19,7 +19,7 @@ import io.netty.channel.ChannelId;
 class ConsolidationLogDispatcherTest {
 
     @ParameterizedTest
-    @CsvSource({"ROUND_ROBIN, RoundRobin", "HASH, Hash", "RANDOM, Random"})
+    @CsvSource({ "ROUND_ROBIN, RoundRobin", "HASH, Hash", "RANDOM, Random" })
     void exposesStrategyName(DispatcherStrategy strategy, String name) {
         assertEquals(name, strategy.getValue());
     }
